@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PSP MRSM TERENDAK room booking</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Konfigurasi Sistem -->
+  <script src="config.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- Header Utama -->
+  <header class="bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-800 text-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs sm:text-sm font-medium tracking-wide mb-2 text-indigo-200">
+            <span>🏛️</span>
+            <span>Pusat Sumber Pembelajaran (PSP) MRSM Terendak</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Tempahan Bilik Diskusi</h1>
+          <p class="text-indigo-200 text-sm mt-1 max-w-xl">
+            Sistem tempahan bilik rasmi PSP MRSM Terendak. Sila patuhi peraturan tempahan yang telah ditetapkan.
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="refreshBtn" onclick="loadBookings()" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-medium transition backdrop-blur-sm border border-white/10 shadow-sm">
+            <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>Muat Semula</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Kandungan Utama -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 w-full space-y-8">
+
+    <!-- Notis Konfigurasi jika SCRIPT_URL belum dimasukkan -->
+    <div id="configNotice" class="hidden rounded-2xl bg-amber-50 border border-amber-200 p-4 text-amber-900 shadow-sm">
+      <div class="flex items-start gap-3">
+        <span class="text-2xl">⚠️</span>
+        <div class="text-sm">
+          <p class="font-bold text-amber-950">URL Web App Belum Ditetapkan</p>
+          <p class="mt-0.5">Sila masukkan URL Google Apps Script Web App anda ke dalam fail <code class="bg-amber-100 px-1.5 py-0.5 rounded font-mono text-xs font-semibold">config.js</code> untuk menyambungkan borang ini dengan Google Sheet anda.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Peti Mesej Respons (Berjaya / Ralat) -->
+    <div id="feedbackBox" class="hidden rounded-2xl p-4 transition-all duration-300 shadow-sm" role="alert">
+      <div class="flex items-start gap-3">
+        <div id="feedbackIcon" class="text-xl mt-0.5 flex-shrink-0"></div>
+        <div class="flex-1">
+          <h3 id="feedbackTitle" class="font-bold text-sm sm:text-base"></h3>
+          <p id="feedbackMessage" class="text-xs sm:text-sm mt-0.5 leading-relaxed"></p>
+        </div>
+        <button onclick="dismissFeedback()" class="text-slate-400 hover:text-slate-600 p-1" aria-label="Tutup">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Ringkasan Bilik yang Disediakan -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold tracking-wider text-slate-500 uppercase">Senarai Bilik PSP</h2>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-4 shadow-sm transition hover:shadow-md">
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-sm mb-2">1</div>
+          <div class="font-semibold text-slate-800 text-sm sm:text-base">Ibnu Sina</div>
+          <div class="text-xs text-slate-500 mt-1 flex items-center gap-1">🏷️ Bilik Diskusi</div>
+        </div>
+        <div class="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-4 shadow-sm transition hover:shadow-md">
+          <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-sm mb-2">2</div>
+          <div class="font-semibold text-slate-800 text-sm sm:text-base">Ibnu Khaldun</div>
+          <div class="text-xs text-slate-500 mt-1 flex items-center gap-1">🏷️ Bilik Diskusi</div>
+        </div>
+        <div class="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-4 shadow-sm transition hover:shadow-md">
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-sm mb-2">3</div>
+          <div class="font-semibold text-slate-800 text-sm sm:text-base">Bilik Khawarizmi</div>
+          <div class="text-xs text-slate-500 mt-1 flex items-center gap-1">🏷️ Bilik Diskusi</div>
+        </div>
+        <div class="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-4 shadow-sm transition hover:shadow-md">
+          <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-sm mb-2">4</div>
+          <div class="font-semibold text-slate-800 text-sm sm:text-base">Bilik Rujukan</div>
+          <div class="text-xs text-slate-500 mt-1 flex items-center gap-1">🏷️ Bilik Diskusi</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grid: Borang Tempahan & Peraturan Ringkas -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Bahagian Borang -->
+      <div class="lg:col-span-8 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+        <div class="flex items-center gap-3 pb-6 border-b border-slate-100">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-lg">
+            ✍️
+          </div>
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">Borang Tempahan Bilik</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Sila lengkapkan butiran di bawah untuk membuat tempahan.</p>
+          </div>
+        </div>
+
+        <form id="bookingForm" onsubmit="handleFormSubmit(event)" class="mt-6 space-y-5">
+          
+          <!-- Pilihan Bilik -->
+          <div>
+            <label for="roomSelect" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+              Pilih Bilik <span class="text-rose-500">*</span>
+            </label>
+            <select id="roomSelect" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm">
+              <option value="">-- Sila Pilih Bilik --</option>
+              <option value="Ibnu Sina">Ibnu Sina</option>
+              <option value="Ibnu Khaldun">Ibnu Khaldun</option>
+              <option value="Bilik Khawarizmi">Bilik Khawarizmi</option>
+              <option value="Bilik Rujukan">Bilik Rujukan</option>
+            </select>
+          </div>
+
+          <!-- Tarikh -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="datePicker" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+                Tarikh Tempahan <span class="text-rose-500">*</span>
+              </label>
+              <input type="date" id="datePicker" required onchange="handleDateChange(this.value)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm">
+            </div>
+            <div>
+              <label for="dateText" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+                Format Tarikh (dd/mm/yyyy)
+              </label>
+              <input type="text" id="dateText" readonly placeholder="Contoh: 12/11/2026" class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-600 font-mono text-sm cursor-not-allowed">
+            </div>
+          </div>
+
+          <!-- Masa Mula & Tamat -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="startTime" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+                Masa Mula <span class="text-rose-500">*</span>
+              </label>
+              <input type="time" id="startTime" min="07:00" max="22:30" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm font-mono">
+              <span class="text-[11px] text-slate-500 mt-1 block">Waktu paling awal: 07:00</span>
+            </div>
+            <div>
+              <label for="endTime" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+                Masa Tamat <span class="text-rose-500">*</span>
+              </label>
+              <input type="time" id="endTime" min="07:00" max="22:30" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm font-mono">
+              <span class="text-[11px] text-slate-500 mt-1 block">Waktu paling lewat: 22:30</span>
+            </div>
+          </div>
+
+          <!-- Nama Pemohon & Bilangan Orang -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-2">
+              <label for="userName" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+                Nama Pemohon / Ketua Kumpulan <span class="text-rose-500">*</span>
+              </label>
+              <input type="text" id="userName" required placeholder="Nama penuh anda" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm">
+            </div>
+            <div>
+              <label for="peopleCount" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+                Bilangan Orang <span class="text-rose-500">*</span>
+              </label>
+              <input type="number" id="peopleCount" min="1" value="1" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm font-mono">
+              <span class="text-[11px] text-slate-500 mt-1 block">Minimum 1 orang</span>
+            </div>
+          </div>
+
+          <!-- Tujuan Tempahan -->
+          <div>
+            <label for="purpose" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
+              Tujuan Tempahan <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" id="purpose" required placeholder="Contoh: Perbincangan Projek Sains / Ulangkaji Kumpulan" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm">
+          </div>
+
+          <!-- Butang Hantar -->
+          <div class="pt-3">
+            <button type="submit" id="submitBtn" class="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-indigo-700 to-purple-700 hover:from-indigo-800 hover:to-purple-800 text-white font-semibold rounded-xl shadow-md hover:shadow-indigo-500/25 transition flex items-center justify-center gap-2 cursor-pointer">
+              <span id="submitSpinner" class="hidden">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+              </span>
+              <span id="submitBtnText">Hantar Tempahan</span>
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Panel Syarat & Peraturan PSP -->
+      <div class="lg:col-span-4 space-y-4">
+        <div class="bg-indigo-50/70 border border-indigo-100 rounded-3xl p-6 text-indigo-950">
+          <h3 class="font-bold text-base flex items-center gap-2 text-indigo-900">
+            <span>📋</span> Peraturan Tempahan PSP
+          </h3>
+          <ul class="mt-4 space-y-2.5 text-xs sm:text-sm text-indigo-900/80 leading-relaxed">
+            <li class="flex items-start gap-2">
+              <span class="text-indigo-600 font-bold">•</span>
+              <span><strong>Masa operasi:</strong> Hanya antara <strong>07:00 pagi hingga 10:30 malam</strong> (22:30).</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-indigo-600 font-bold">•</span>
+              <span><strong>Tempoh maksimum:</strong> Terhad kepada <strong>2 jam</strong> bagi satu tempahan.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-indigo-600 font-bold">•</span>
+              <span><strong>Pertindihan masa:</strong> Tidak dibenarkan menempah pada masa yang sama. Walau bagaimanapun, tempahan baharu boleh bermula tepat pada waktu tempahan sebelumnya tamat.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-indigo-600 font-bold">•</span>
+              <span><strong>Keperluan borang:</strong> Setiap maklumat dalam borang adalah wajib diisi.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm text-slate-600 text-xs">
+          <p class="font-semibold text-slate-800 mb-1">💡 Bantuan & Pertanyaan</p>
+          <p>Sila berhubung dengan kaunter PSP MRSM Terendak sekiranya anda memerlukan pembatalan atau bantuan lanjut.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Jadual Senarai Tempahan Semasa -->
+    <section class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900">Senarai Tempahan Terkini</h2>
+          <p class="text-xs sm:text-sm text-slate-500">Disusun secara automatik mengikut tarikh dan masa tempahan.</p>
+        </div>
+        <!-- Tapisan Carian Pantas -->
+        <div class="flex items-center gap-2">
+          <select id="filterRoom" onchange="renderBookings()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="SEMUA">Semua Bilik</option>
+            <option value="Ibnu Sina">Ibnu Sina</option>
+            <option value="Ibnu Khaldun">Ibnu Khaldun</option>
+            <option value="Bilik Khawarizmi">Bilik Khawarizmi</option>
+            <option value="Bilik Rujukan">Bilik Rujukan</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Paparan Desktop (Jadual) -->
+      <div class="hidden md:block overflow-x-auto mt-4">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
+            <tr>
+              <th scope="col" class="py-3.5 px-4">Bilik</th>
+              <th scope="col" class="py-3.5 px-4">Tarikh (dd/mm/yyyy)</th>
+              <th scope="col" class="py-3.5 px-4">Masa Sesi</th>
+              <th scope="col" class="py-3.5 px-4">Pemohon</th>
+              <th scope="col" class="py-3.5 px-4">Tujuan</th>
+              <th scope="col" class="py-3.5 px-4 text-center">Bil. Orang</th>
+            </tr>
+          </thead>
+          <tbody id="bookingsTableBody" class="divide-y divide-slate-100">
+            <!-- Data akan dimasukkan oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paparan Telefon Pintar (Kad Responsif) -->
+      <div id="bookingsCardsContainer" class="md:hidden mt-4 space-y-3">
+        <!-- Kad untuk telefon dimasukkan oleh JavaScript -->
+      </div>
+
+      <!-- Keadaan Kosong (Empty State) -->
+      <div id="emptyState" class="hidden text-center py-12">
+        <div class="text-4xl mb-3">📅</div>
+        <p class="text-base font-semibold text-slate-700">Belum Ada Tempahan</p>
+        <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Semua bilik kini sedia untuk ditempah bagi tarikh pilihan anda.</p>
+      </div>
+
+      <!-- Keadaan Memuat (Loading State) -->
+      <div id="tableLoading" class="text-center py-10">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent mb-2"></div>
+        <p class="text-xs text-slate-500">Memuatkan data tempahan...</p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
+    <p>© PSP MRSM TERENDAK — Sistem Pengurusan Tempahan Bilik</p>
+  </footer>
+
+  <!-- Skrip Antara Muka & Logik Pelanggan -->
+  <script>
+    // Simpanan data tempahan tempatan
+    let allBookings = [];
+
+    // Tetapkan tarikh minimum kepada hari ini semasa mula
+    window.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      
+      const datePicker = document.getElementById('datePicker');
+      datePicker.min = `${yyyy}-${mm}-${dd}`;
+      datePicker.value = `${yyyy}-${mm}-${dd}`;
+      handleDateChange(`${yyyy}-${mm}-${dd}`);
+
+      // Semak sama ada config.js mempunyai URL
+      if (typeof SCRIPT_URL === 'undefined' || !SCRIPT_URL || SCRIPT_URL.trim() === '') {
+        document.getElementById('configNotice').classList.remove('hidden');
+        document.getElementById('tableLoading').classList.add('hidden');
+        document.getElementById('emptyState').classList.remove('hidden');
+      } else {
+        loadBookings();
+      }
+    });
+
+    /**
+     * Tukar tarikh dari input HTML (yyyy-mm-dd) kepada dd/mm/yyyy
+     */
+    function handleDateChange(isoDate) {
+      if (!isoDate) {
+        document.getElementById('dateText').value = '';
+        return;
+      }
+      const parts = isoDate.split('-');
+      if (parts.length === 3) {
+        const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        document.getElementById('dateText').value = formatted;
+      }
+    }
+
+    /**
+     * Paparkan maklum balas jelas (Berjaya / Gagal)
+     */
+    function showFeedback(type, title, message) {
+      const box = document.getElementById('feedbackBox');
+      const icon = document.getElementById('feedbackIcon');
+      const titleElem = document.getElementById('feedbackTitle');
+      const msgElem = document.getElementById('feedbackMessage');
+
+      box.className = 'rounded-2xl p-4 transition-all duration-300 shadow-sm border';
+      if (type === 'success') {
+        box.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-900');
+        icon.innerHTML = '✅';
+      } else {
+        box.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-900');
+        icon.innerHTML = '❌';
+      }
+
+      titleElem.textContent = title;
+      msgElem.textContent = message;
+      box.classList.remove('hidden');
+
+      // Tatal dengan lembut ke peti mesej untuk dilihat oleh pengguna
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function dismissFeedback() {
+      document.getElementById('feedbackBox').classList.add('hidden');
+    }
+
+    /**
+     * Muat semula senarai tempahan daripada Google Sheet
+     */
+    async function loadBookings() {
+      if (typeof SCRIPT_URL === 'undefined' || !SCRIPT_URL || SCRIPT_URL.trim() === '') {
+        return;
+      }
+
+      const tableLoading = document.getElementById('tableLoading');
+      const refreshIcon = document.getElementById('refreshIcon');
+      tableLoading.classList.remove('hidden');
+      refreshIcon.classList.add('animate-spin');
+
+      try {
+        const response = await fetch(SCRIPT_URL);
+        const data = await response.json();
+
+        if (data && data.success && Array.isArray(data.bookings)) {
+          allBookings = data.bookings;
+          renderBookings();
+        } else {
+          showFeedback('error', 'Gagal Memuatkan Data', data.message || 'Sila pastikan skrip Google Apps Script telah dideploy dengan betul.');
+        }
+      } catch (err) {
+        console.error(err);
+        showFeedback('error', 'Ralat Sambungan', 'Tidak dapat menghubungi pangkalan data Google Sheet. Sila semak sambungan internet dan URL dalam config.js.');
+      } finally {
+        tableLoading.classList.add('hidden');
+        refreshIcon.classList.remove('animate-spin');
+      }
+    }
+
+    /**
+     * Susun dan paparkan tempahan ke dalam jadual & kad telefon pintar
+     */
+    function renderBookings() {
+      const tableBody = document.getElementById('bookingsTableBody');
+      const cardsContainer = document.getElementById('bookingsCardsContainer');
+      const emptyState = document.getElementById('emptyState');
+      const filterRoom = document.getElementById('filterRoom').value;
+
+      tableBody.innerHTML = '';
+      cardsContainer.innerHTML = '';
+
+      // Tapis mengikut bilik jika dipilih
+      let filtered = allBookings.slice();
+      if (filterRoom !== 'SEMUA') {
+        filtered = filtered.filter(b => (b.room || '').toLowerCase() === filterRoom.toLowerCase());
+      }
+
+      // Susun mengikut tarikh (dd/mm/yyyy) dan masa mula secara kronologi
+      filtered.sort((a, b) => {
+        const dateA = parseDate(a.date);
+        const dateB = parseDate(b.date);
+        if (!dateA || !dateB) return 0;
+
+        // Bandingkan tahun, bulan, hari
+        if (dateA.year !== dateB.year) return dateA.year - dateB.year;
+        if (dateA.month !== dateB.month) return dateA.month - dateB.month;
+        if (dateA.day !== dateB.day) return dateA.day - dateB.day;
+
+        // Jika tarikh sama, susun mengikut minit masa mula
+        return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+      });
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      filtered.forEach(item => {
+        // Baris untuk Jadual Desktop
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-slate-800 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+            ${escapeHtml(item.room)}
+          </td>
+          <td class="py-3 px-4 font-mono text-slate-700">${escapeHtml(item.date)}</td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono">
+              ${escapeHtml(item.startTime)} - ${escapeHtml(item.endTime)}
+            </span>
+          </td>
+          <td class="py-3 px-4 font-medium text-slate-900">${escapeHtml(item.name)}</td>
+          <td class="py-3 px-4 text-slate-600 max-w-xs truncate" title="${escapeHtml(item.purpose)}">${escapeHtml(item.purpose)}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700 font-medium">
+              👥 ${item.peopleCount}
+            </span>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+
+        // Kad untuk Paparan Telefon Pintar
+        const card = document.createElement('div');
+        card.className = 'bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-indigo-300 transition';
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md inline-block mb-1">
+                ${escapeHtml(item.room)}
+              </span>
+              <h4 class="font-bold text-slate-900 text-sm">${escapeHtml(item.name)}</h4>
+            </div>
+            <span class="text-xs font-semibold px-2 py-1 bg-slate-100 text-slate-700 rounded-lg whitespace-nowrap">
+              👥 ${item.peopleCount} org
+            </span>
+          </div>
+          <div class="text-xs text-slate-600 space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-400">Tarikh:</span>
+              <span class="font-mono font-medium text-slate-800">${escapeHtml(item.date)}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-400">Masa:</span>
+              <span class="font-mono font-semibold text-indigo-700">${escapeHtml(item.startTime)} - ${escapeHtml(item.endTime)}</span>
+            </div>
+            <div class="pt-1.5 border-t border-slate-50 mt-1">
+              <span class="text-slate-400 block text-[11px]">Tujuan:</span>
+              <span class="text-slate-700 text-xs">${escapeHtml(item.purpose)}</span>
+            </div>
+          </div>
+        `;
+        cardsContainer.appendChild(card);
+      });
+    }
+
+    /**
+     * Memproses penghantaran borang tempahan
+     */
+    async function handleFormSubmit(event) {
+      event.preventDefault();
+      dismissFeedback();
+
+      const room = document.getElementById('roomSelect').value;
+      const date = document.getElementById('dateText').value;
+      const startTime = document.getElementById('startTime').value;
+      const endTime = document.getElementById('endTime').value;
+      const name = document.getElementById('userName').value.trim();
+      const purpose = document.getElementById('purpose').value.trim();
+      const peopleCount = parseInt(document.getElementById('peopleCount').value, 10);
+
+      // 1. Semak semua ruangan diisi
+      if (!room || !date || !startTime || !endTime || !name || !purpose || isNaN(peopleCount)) {
+        showFeedback('error', 'Borang Tidak Lengkap', 'Sila isi semua ruangan maklumat yang bertanda bintang (*).');
+        return;
+      }
+
+      // 2. Semak masa mula dan tamat
+      const startMin = timeToMinutes(startTime);
+      const endMin = timeToMinutes(endTime);
+
+      if (startMin < 420 || endMin > 1350) {
+        showFeedback('error', 'Waktu Luar Operasi', 'Tempahan hanya dibenarkan antara jam 07:00 pagi hingga 10:30 malam (22:30).');
+        return;
+      }
+
+      if (endMin <= startMin) {
+        showFeedback('error', 'Masa Tidak Sah', 'Masa tamat mestilah selepas masa mula tempahan.');
+        return;
+      }
+
+      // 3. Semak tempoh maksimum 2 jam (120 minit)
+      if (endMin - startMin > 120) {
+        showFeedback('error', 'Melebihi Had Masa', 'Tempoh satu tempahan dihadkan paling lama 2 jam (120 minit).');
+        return;
+      }
+
+      // 4. Semak bilangan orang
+      if (peopleCount < 1) {
+        showFeedback('error', 'Bilangan Tidak Sah', 'Bilangan orang mestilah sekurang-kurangnya 1 orang.');
+        return;
+      }
+
+      // 5. Semak pertindihan tempatan terlebih dahulu untuk respons segera
+      const hasOverlap = allBookings.some(b => {
+        if ((b.room || '').toLowerCase() === room.toLowerCase() && b.date === date) {
+          const exStart = timeToMinutes(b.startTime);
+          const exEnd = timeToMinutes(b.endTime);
+          // Bertindih jika Mula baharu < Tamat sedia ada DAN Tamat baharu > Mula sedia ada
+          return (startMin < exEnd && endMin > exStart);
+        }
+        return false;
+      });
+
+      if (hasOverlap) {
+        showFeedback('error', 'Tempahan Bertindih', `Bilik ${room} telah pun ditempah pada tarikh dan slot masa tersebut.`);
+        return;
+      }
+
+      // Semak sama ada SCRIPT_URL telah dimasukkan
+      if (typeof SCRIPT_URL === 'undefined' || !SCRIPT_URL || SCRIPT_URL.trim() === '') {
+        showFeedback('error', 'Skrip Belum Dikonfigurasi', 'Sila masukkan URL Google Apps Script anda ke dalam fail config.js.');
+        return;
+      }
+
+      // Mulakan keadaan memuatkan pada butang
+      setSubmittingState(true);
+
+      const payload = {
+        room: room,
+        date: date,
+        startTime: startTime,
+        endTime: endTime,
+        name: name,
+        purpose: purpose,
+        peopleCount: peopleCount
+      };
+
+      try {
+        // Hantar sebagai 'text/plain' bagi mengelakkan sekatan CORS preflight oleh pelayar
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result && result.success) {
+          showFeedback('success', 'Tempahan Berjaya!', result.message || 'Tempahan anda telah direkodkan ke dalam Google Sheet.');
+          // Kosongkan beberapa ruangan borang
+          document.getElementById('userName').value = '';
+          document.getElementById('purpose').value = '';
+          document.getElementById('peopleCount').value = '1';
+          // Muat semula senarai tempahan terkini dari server
+          await loadBookings();
+        } else {
+          showFeedback('error', 'Tempahan Ditolak', result.message || 'Sistem tidak dapat memproses tempahan ini. Sila semak peraturan.');
+        }
+
+      } catch (err) {
+        console.error(err);
+        showFeedback('error', 'Ralat Penghantaran', 'Tidak dapat menghantar tempahan ke Google Apps Script. Sila pastikan Web App telah dideploy dengan akses "Anyone" (Sesiapa Sahaja).');
+      } finally {
+        setSubmittingState(false);
+      }
+    }
+
+    /**
+     * Kawal status butang hantar semasa memproses
+     */
+    function setSubmittingState(isSubmitting) {
+      const btn = document.getElementById('submitBtn');
+      const spinner = document.getElementById('submitSpinner');
+      const btnText = document.getElementById('submitBtnText');
+
+      if (isSubmitting) {
+        btn.disabled = true;
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        spinner.classList.remove('hidden');
+        btnText.textContent = 'Sedang Memproses...';
+      } else {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        spinner.classList.add('hidden');
+        btnText.textContent = 'Hantar Tempahan';
+      }
+    }
+
+    /**
+     * Fungsi bantuan: Tukar HH:mm kepada minit
+     */
+    function timeToMinutes(timeStr) {
+      if (!timeStr) return 0;
+      const [h, m] = timeStr.split(':').map(Number);
+      return (h * 60) + (m || 0);
+    }
+
+    /**
+     * Fungsi bantuan: Pisahkan dd/mm/yyyy tanpa menggunakan new Date secara terus
+     */
+    function parseDate(dateStr) {
+      if (!dateStr || typeof dateStr !== 'string') return null;
+      const parts = dateStr.trim().split('/');
+      if (parts.length !== 3) return null;
+      return {
+        day: parseInt(parts[0], 10),
+        month: parseInt(parts[1], 10),
+        year: parseInt(parts[2], 10)
+      };
+    }
+
+    /**
+     * Elakkan serangan XSS semasa memaparkan teks
+     */
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
